@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { Eye, EyeOff } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-
+import { auth, googleProvider, signInWithPopup } from "@/app/lib/firebase"; 
 const API = "http://localhost:5000/api/v1/auth";
 
 const formSchema = z.object({
@@ -17,10 +17,13 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+
+  
 export default function AuthPage() {
 
   const [login, setLogin] = useState(true);
   const [show, setShow] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const {
     register,
@@ -31,6 +34,29 @@ export default function AuthPage() {
     resolver: zodResolver(formSchema)
   });
 
+
+
+  
+  const handleGoogleLogin = async () => {
+    try {
+      setIsLoading(true);
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      const response = await axios.post(`${API}/social-login`, {
+        name: user.displayName,
+        email: user.email,
+        authProvider: "google",
+      });
+
+      localStorage.setItem("token", response.data.token);
+      alert("Google Login Successful!");
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Google Login Failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
   const submitForm = async (data:FormData) => {
 
     try{
@@ -211,29 +237,17 @@ export default function AuthPage() {
       
 <div className="flex gap-4">
 
- 
   <button
-    type="button"
-    className="flex-1 flex items-center justify-center gap-2 border border-slate-200 py-3 rounded-xl bg-white"
-  >
-    <img
-      src="https://www.svgrepo.com/show/475656/google-color.svg"
-      className="w-5 h-5"
-    />
-    <span className="text-sm text-black">Google</span>
-  </button>
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={isLoading}
+            className="w-full flex items-center justify-center gap-3 border border-slate-200 py-4 rounded-2xl bg-white hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+          >
+            <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="google" />
+            <span className="text-sm text-slate-700 font-bold">Continue with Google</span>
+          </button>
 
 
-  <button
-    type="button"
-    className="flex-1 flex items-center justify-center gap-2 border border-slate-200 py-3 rounded-xl bg-black"
-  >
-    <img
-      src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"
-      className="w-5 h-5 invert" 
-    />
-    <span className="text-sm text-white">Apple</span>
-  </button>
 
 </div>
         </form>
